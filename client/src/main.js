@@ -18,7 +18,6 @@ function model(textStream$, sendNowStream$) {
   mergedStream$.subscribe(msg => console.log(msg), 
     e => {}, 
     () => {
-      console.log('done'); 
       return {value: ''};
     }
   );
