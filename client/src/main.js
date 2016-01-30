@@ -8,85 +8,58 @@ import {textEntryView} from './textEntry.js';
 
 function intent(DOMSource) {
   const {textStream$, sendNowStream$} = textEntryIntent(DOMSource);
-  console.log('intent');
   return {textStream$, sendNowStream$};
 }
 
 function model(textStream$, sendNowStream$) {
-  /*
-  let mergedStream$ = textStream$.takeUntil(sendNowStream$);
-  mergedStream$.subscribe(msg => console.log(msg), 
-    e => {}, 
-    () => {
-      return {value: ''};
-    }
+  return Rx.Observable.combineLatest(
+    sendNowStream$.startWith(true),
+    () => {return {value: ''}}
   );
-  */
-  console.log(sendNowStream$);
-  return sendNowStream$.subscribe((e) => {
-    console.log(e);
-    return {value: ''};
-  });
-  
-  //let textValue$ = mergedStream$.map(a => a).startWith('');
-  
-  //var text = '';
-  //var onNext = t => { text = t; }
-  //var onError = e => {}
-  //var onComplete = () => {
-  //  mergedStream$ = textStream$.takeUntil(sendMessageStream);
-  //  textValue$ = mergedStream$.map(a => a).startWith('');
-  //  mergedStream$.subscribe(onNext, onError, onComplete);        
-  //}
-
-  //mergedStream$.subscribe(onNext, onError, onComplete);
-  
 }
 
-function view(state, DOMSource) {
-  console.log('view');
+function view(state$, DOMSource) {
   const appBarView$ = appBar(DOMSource).DOM;
   
   const chatPaneView$ = chatPane(DOMSource).DOM;
   const presencePaneView$ = presencePane(DOMSource).DOM;
-  const textEntryView$ = textEntryView(Rx.Observable.of(state)).DOM;
+  const textEntryView$ = textEntryView(state$).DOM;
   
-  const vtree$ = Rx.Observable.combineLatest(appBarView$, chatPaneView$, presencePaneView$, textEntryView$,
-                                             (appBar, chatPane, presencePane, textEntry) => 
+  const vtree$ = state$.map(state =>
     div([
-        appBar,
-        div({className: 'row'}, [
-          div({className: 'col s6'}, [
-            h4('Chat Messages'),
-            textEntry,
-          ]),
-          div({className: 'col s6'}, [
-            presencePane,
-          ]),
-        ])
-      ])                                            
+      appBarView$,
+      div({className: 'row'}, [
+        div({className: 'col s6'}, [
+          h4('Chat Messages'),
+          textEntryView$,
+        ]),
+        div({className: 'col s6'}, [
+          presencePaneView$,
+        ]),
+      ])
+    ])
   );
     
   return {
     DOM: vtree$,
-    //TextStream: textStream$,
-    //SendNowStream: sendNowStream$,
   };  
 }
 
 function main(sources) {
   const {textStream$, sendNowStream$} = intent(sources.DOM);
-  const state = model(textStream$, sendNowStream$);
-  return view(state, sources.DOM);
+  const state$ = model(textStream$, sendNowStream$);
+  var obj = view(state$, sources.DOM);
+  obj['TextInput'] = sources.DOM.select('#input-msg');
+  return obj;
 }
 
-function consoleLogDriver(stream$) {
-  console.log(stream$);
-  stream$.subscribe(msg => console.log(msg), e => {}, () => console.log('done'));
+function focusInputDriver(inputText) {
+  console.log(inputText);
+  //stream$.subscribe(msg => console.log(msg));
+  //inputText.map(e => {e.target.focus(); return;});
 }
 
 run(main, {
   DOM: makeDOMDriver('#app'),
-  //TextStream: consoleLogDriver,
-  //SendNowStream: consoleLogDriver,
+  //TextInput: focusInputDriver,
 });

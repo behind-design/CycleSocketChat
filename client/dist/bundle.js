@@ -64,51 +64,24 @@
 	  var textStream$ = _textEntryIntent.textStream$;
 	  var sendNowStream$ = _textEntryIntent.sendNowStream$;
 	
-	  console.log('intent');
 	  return { textStream$: textStream$, sendNowStream$: sendNowStream$ };
 	}
 	
 	function model(textStream$, sendNowStream$) {
-	  /*
-	  let mergedStream$ = textStream$.takeUntil(sendNowStream$);
-	  mergedStream$.subscribe(msg => console.log(msg), 
-	    e => {}, 
-	    () => {
-	      console.log('done'); 
-	      return {value: ''};
-	    }
-	  );
-	  */
-	  console.log(sendNowStream$);
-	  return sendNowStream$.subscribe(function (e) {
-	    console.log(e);
+	  return Rx.Observable.combineLatest(sendNowStream$.startWith(true), function () {
 	    return { value: '' };
 	  });
-	
-	  //let textValue$ = mergedStream$.map(a => a).startWith('');
-	
-	  //var text = '';
-	  //var onNext = t => { text = t; }
-	  //var onError = e => {}
-	  //var onComplete = () => {
-	  //  mergedStream$ = textStream$.takeUntil(sendMessageStream);
-	  //  textValue$ = mergedStream$.map(a => a).startWith('');
-	  //  mergedStream$.subscribe(onNext, onError, onComplete);       
-	  //}
-	
-	  //mergedStream$.subscribe(onNext, onError, onComplete);
 	}
 	
-	function view(state, DOMSource) {
-	  console.log('view');
+	function view(state$, DOMSource) {
 	  var appBarView$ = (0, _appBar.appBar)(DOMSource).DOM;
 	
 	  var chatPaneView$ = (0, _chatPane.chatPane)(DOMSource).DOM;
 	  var presencePaneView$ = (0, _presencePane.presencePane)(DOMSource).DOM;
-	  var textEntryView$ = (0, _textEntry.textEntryView)(Rx.Observable.of(state)).DOM;
+	  var textEntryView$ = (0, _textEntry.textEntryView)(state$).DOM;
 	
-	  var vtree$ = Rx.Observable.combineLatest(appBarView$, chatPaneView$, presencePaneView$, textEntryView$, function (appBar, chatPane, presencePane, textEntry) {
-	    return (0, _dom.div)([appBar, (0, _dom.div)({ className: 'row' }, [(0, _dom.div)({ className: 'col s6' }, [(0, _dom.h4)('Chat Messages'), textEntry]), (0, _dom.div)({ className: 'col s6' }, [presencePane])])]);
+	  var vtree$ = state$.map(function (state) {
+	    return (0, _dom.div)([appBarView$, (0, _dom.div)({ className: 'row' }, [(0, _dom.div)({ className: 'col s6' }, [(0, _dom.h4)('Chat Messages'), textEntryView$]), (0, _dom.div)({ className: 'col s6' }, [presencePaneView$])])]);
 	  });
 	
 	  return {
@@ -116,25 +89,22 @@
 	  };
 	}
 	
-	//TextStream: textStream$,
-	//SendNowStream: sendNowStream$,
 	function main(sources) {
 	  var _intent = intent(sources.DOM);
 	
 	  var textStream$ = _intent.textStream$;
 	  var sendNowStream$ = _intent.sendNowStream$;
 	
-	  var state = model(textStream$, sendNowStream$);
-	  return view(state, sources.DOM);
+	  var state$ = model(textStream$, sendNowStream$);
+	  var obj = view(state$, sources.DOM);
+	  obj['TextInput'] = sources.DOM.select('#input-msg');
+	  return obj;
 	}
 	
-	function consoleLogDriver(stream$) {
-	  console.log(stream$);
-	  stream$.subscribe(function (msg) {
-	    return console.log(msg);
-	  }, function (e) {}, function () {
-	    return console.log('done');
-	  });
+	function focusInputDriver(inputText) {
+	  console.log(inputText);
+	  //stream$.subscribe(msg => console.log(msg));
+	  //inputText.map(e => {e.target.focus(); return;});
 	}
 	
 	(0, _core.run)(main, {
@@ -16848,7 +16818,7 @@
 	var _dom = __webpack_require__(5);
 	
 	function appBar(DOMSource) {
-	  var vdom$ = _rx.Observable.of((0, _dom.div)('navbar-fixed', [(0, _dom.nav)([(0, _dom.div)('nav-wrapper', [(0, _dom.a)({ className: 'brand-logo center', href: '#' }, 'Cycle Socket Chat')])])]));
+	  var vdom$ = _rx.Observable.of((0, _dom.div)({ className: 'navbar-fixed' }, [(0, _dom.nav)([(0, _dom.div)({ className: 'nav-wrapper' }, [(0, _dom.a)({ className: 'brand-logo center', href: '#' }, 'Cycle Socket Chat')])])]));
 	
 	  return {
 	    DOM: vdom$
@@ -16946,27 +16916,13 @@
 	  });
 	  var textStream$ = DOMSource.select('#input-msg').events('keyup').map(function (e) {
 	    return e.target.value;
-	  }); //.takeUntil(enterKeyStream$);
+	  });
 	  var sendNowStream$ = Rx.Observable.merge(sendBtnClickStream$, enterKeyPressedStream$);
 	
 	  return {
 	    textStream$: textStream$, sendNowStream$: sendNowStream$
 	  };
 	}
-	//let mergedStream$ = textStream$.takeUntil(sendMessageStream);
-	
-	//let textValue$ = mergedStream$.map(a => a).startWith('');
-	
-	//var text = '';
-	//var onNext = t => { text = t; }
-	//var onError = e => {}
-	//var onComplete = () => {
-	//  mergedStream$ = textStream$.takeUntil(sendMessageStream);
-	//  textValue$ = mergedStream$.map(a => a).startWith('');
-	//  mergedStream$.subscribe(onNext, onError, onComplete);       
-	//}
-	
-	//mergedStream$.subscribe(onNext, onError, onComplete);
 	
 	function textEntryView(textValue$) {
 	  var vdom$ = textValue$.map(function (textValue) {
