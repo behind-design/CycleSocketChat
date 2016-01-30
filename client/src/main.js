@@ -42,24 +42,28 @@ function view(state$, DOMSource) {
     
   return {
     DOM: vtree$,
+    TextEntry: textEntryView$,
   };  
 }
 
 function main(sources) {
   const {textStream$, sendNowStream$} = intent(sources.DOM);
   const state$ = model(textStream$, sendNowStream$);
-  var obj = view(state$, sources.DOM);
-  obj['TextInput'] = sources.DOM.select('#input-msg');
-  return obj;
+  return view(state$, sources.DOM);
 }
 
-function focusInputDriver(inputText) {
-  console.log(inputText);
-  //stream$.subscribe(msg => console.log(msg));
+function focusInputDriver(textEntry$) {
+  //const inputText = sources.DOM.select('#input-msg');
+  textEntry$.subscribe(el => {    
+    const inputEl = el.children[0].children[0];
+    //inputEl.set('autofocus', true);
+    console.log(inputEl);
+    console.log(inputEl.properties);
+  });
   //inputText.map(e => {e.target.focus(); return;});
 }
 
 run(main, {
   DOM: makeDOMDriver('#app'),
-  //TextInput: focusInputDriver,
+  TextEntry: focusInputDriver,
 });
