@@ -14,7 +14,7 @@ function intent(DOMSource) {
 function model(textStream$, sendNowStream$) {
   return Rx.Observable.combineLatest(
     sendNowStream$.startWith(true),
-    () => {return {value: ''}}
+    () => {return {textValue: ''}}
   );
 }
 
@@ -41,8 +41,7 @@ function view(state$, DOMSource) {
   );
     
   return {
-    DOM: vtree$,
-    TextEntry: textEntryView$,
+    DOM: vtree$,    
   };  
 }
 
@@ -52,18 +51,6 @@ function main(sources) {
   return view(state$, sources.DOM);
 }
 
-function focusInputDriver(textEntry$) {
-  //const inputText = sources.DOM.select('#input-msg');
-  textEntry$.subscribe(el => {    
-    const inputEl = el.children[0].children[0];
-    //inputEl.set('autofocus', true);
-    console.log(inputEl);
-    console.log(inputEl.properties);
-  });
-  //inputText.map(e => {e.target.focus(); return;});
-}
-
 run(main, {
   DOM: makeDOMDriver('#app'),
-  TextEntry: focusInputDriver,
 });

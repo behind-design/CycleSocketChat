@@ -69,7 +69,7 @@
 	
 	function model(textStream$, sendNowStream$) {
 	  return Rx.Observable.combineLatest(sendNowStream$.startWith(true), function () {
-	    return { value: '' };
+	    return { textValue: '' };
 	  });
 	}
 	
@@ -85,8 +85,7 @@
 	  });
 	
 	  return {
-	    DOM: vtree$,
-	    TextEntry: textEntryView$
+	    DOM: vtree$
 	  };
 	}
 	
@@ -100,20 +99,8 @@
 	  return view(state$, sources.DOM);
 	}
 	
-	function focusInputDriver(textEntry$) {
-	  //const inputText = sources.DOM.select('#input-msg');
-	  textEntry$.subscribe(function (el) {
-	    var inputEl = el.children[0].children[0];
-	    //inputEl.set('autofocus', true);
-	    console.log(inputEl);
-	    console.log(inputEl.properties);
-	  });
-	  //inputText.map(e => {e.target.focus(); return;});
-	}
-	
 	(0, _core.run)(main, {
-	  DOM: (0, _dom.makeDOMDriver)('#app'),
-	  TextEntry: focusInputDriver
+	  DOM: (0, _dom.makeDOMDriver)('#app')
 	});
 
 /***/ },
@@ -16929,9 +16916,9 @@
 	  };
 	}
 	
-	function textEntryView(textValue$) {
-	  var vdom$ = textValue$.map(function (textValue) {
-	    return (0, _dom.div)({ className: 'row' }, [(0, _dom.div)({ className: 'input-field col s10' }, [(0, _dom.input)({ id: 'input-msg', className: 'validate', value: textValue.value, autofocus: 'true' }), (0, _dom.label)({ className: 'active' }, 'Type your chat, enter or hit button to send')]), (0, _dom.div)({ className: 'input-field col s2' }, [(0, _dom.a)({ id: 'send-btn', className: 'btn-floating btn-large waves-effect waves-light red' }, [(0, _dom.i)({ className: 'material-icons' }, 'send')])])]);
+	function textEntryView(state$) {
+	  var vdom$ = state$.map(function (state) {
+	    return (0, _dom.div)({ className: 'row' }, [(0, _dom.div)({ className: 'input-field col s10' }, [(0, _dom.input)({ id: 'input-msg', className: 'validate', value: state.textValue, autofocus: true }), (0, _dom.label)({ className: 'active' }, 'Type your chat, enter or hit button to send')]), (0, _dom.div)({ className: 'input-field col s2' }, [(0, _dom.a)({ id: 'send-btn', className: 'btn-floating btn-large waves-effect waves-light red' }, [(0, _dom.i)({ className: 'material-icons' }, 'send')])])]);
 	  });
 	
 	  return {

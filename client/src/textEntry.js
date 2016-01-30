@@ -12,11 +12,11 @@ export function textEntryIntent(DOMSource) {
   }
 }
   
-export function textEntryView(textValue$) {  
-  const vdom$ = textValue$.map(textValue =>
+export function textEntryView(state$) {  
+  const vdom$ = state$.map(state =>
     div({className: 'row'}, [
       div({className: 'input-field col s10'}, [
-        input({id: 'input-msg', className: 'validate', value: textValue.value, autofocus: 'true'}),
+        input({id: 'input-msg', className: 'validate', value: state.textValue, autofocus: true}),
         label({className: 'active'}, 'Type your chat, enter or hit button to send')
       ]),
       div({className: 'input-field col s2'}, [
