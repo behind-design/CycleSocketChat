@@ -58,16 +58,29 @@
 	
 	var _textEntry = __webpack_require__(66);
 	
+	function intentLoseFocus(DOMSource) {
+	  var _textEntryLoseFocus = (0, _textEntry.textEntryLoseFocus)(DOMSource);
+	
+	  var buttonClick$ = _textEntryLoseFocus.buttonClick$;
+	  var textEntryBlur$ = _textEntryLoseFocus.textEntryBlur$;
+	
+	  return Rx.Observable.combineLatest(buttonClick$, textEntryBlur$, function (buttonClick, textEntryBlur) {
+	    return { buttonClick: buttonClick, textEntryBlur: textEntryBlur };
+	  });
+	}
+	
 	function intent(DOMSource) {
 	  var _textEntryIntent = (0, _textEntry.textEntryIntent)(DOMSource);
 	
 	  var textStream$ = _textEntryIntent.textStream$;
 	  var sendNowStream$ = _textEntryIntent.sendNowStream$;
 	
-	  return { textStream$: textStream$, sendNowStream$: sendNowStream$ };
+	  return Rx.Observable.combineLatest(textStream$, sendNowStream$, function (textStream, sendNowStream) {
+	    return { textStream: textStream, sendNowStream: sendNowStream };
+	  });
 	}
 	
-	function model(textStream$, sendNowStream$) {
+	function model(sendNowStream$) {
 	  return Rx.Observable.combineLatest(sendNowStream$.startWith(true), function () {
 	    return { textValue: '' };
 	  });
@@ -90,17 +103,31 @@
 	}
 	
 	function main(sources) {
-	  var _intent = intent(sources.DOM);
+	  var lostFocusStream$ = intentLoseFocus(sources.DOM);
+	  var httpStream$ = intent(sources.DOM);
 	
-	  var textStream$ = _intent.textStream$;
-	  var sendNowStream$ = _intent.sendNowStream$;
-	
-	  var state$ = model(textStream$, sendNowStream$);
-	  return view(state$, sources.DOM);
+	  var state$ = model(httpStream$);
+	  var sink = view(state$, sources.DOM);
+	  sink['SetFocusEffect'] = lostFocusStream$;
+	  sink['HttpPostEffect'] = httpStream$;
+	  return sink;
 	}
 	
 	(0, _core.run)(main, {
-	  DOM: (0, _dom.makeDOMDriver)('#app')
+	  DOM: (0, _dom.makeDOMDriver)('#app'),
+	  SetFocusEffect: function SetFocusEffect(lostFocusStream$) {
+	    lostFocusStream$.subscribe(function (lostFocusStream) {
+	      //console.log(lostFocusStream.buttonClick);
+	      //console.log(lostFocusStream.textEntryBlur);
+	      lostFocusStream.textEntryBlur.focus();
+	      lostFocusStream.textEntryBlur.value = '';
+	    });
+	  },
+	  HttpPostEffect: function HttpPostEffect(httpStream$) {
+	    httpStream$.subscribe(function (httpStream) {
+	      console.log(httpStream.textStream);
+	    });
+	  }
 	});
 
 /***/ },
@@ -16892,12 +16919,23 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
+	exports.textEntryLoseFocus = textEntryLoseFocus;
 	exports.textEntryIntent = textEntryIntent;
 	exports.textEntryView = textEntryView;
 	
 	var _rx = __webpack_require__(2);
 	
 	var _dom = __webpack_require__(5);
+	
+	function textEntryLoseFocus(DOMSource) {
+	  var buttonClick$ = DOMSource.select('#send-btn').events('click').map(function (e) {
+	    return e.target;
+	  });
+	  var textEntryBlur$ = DOMSource.select('#input-msg').events('blur').map(function (e) {
+	    return e.target;
+	  });
+	  return { buttonClick$: buttonClick$, textEntryBlur$: textEntryBlur$ };
+	}
 	
 	function textEntryIntent(DOMSource) {
 	  var sendBtnClickStream$ = DOMSource.select('#send-btn').events('click').map(function () {
@@ -16918,7 +16956,7 @@
 	
 	function textEntryView(state$) {
 	  var vdom$ = state$.map(function (state) {
-	    return (0, _dom.div)({ className: 'row' }, [(0, _dom.div)({ className: 'input-field col s10' }, [(0, _dom.input)({ id: 'input-msg', className: 'validate', value: state.textValue, autofocus: true }), (0, _dom.label)({ className: 'active' }, 'Type your chat, enter or hit button to send')]), (0, _dom.div)({ className: 'input-field col s2' }, [(0, _dom.a)({ id: 'send-btn', className: 'btn-floating btn-large waves-effect waves-light red' }, [(0, _dom.i)({ className: 'material-icons' }, 'send')])])]);
+	    return (0, _dom.div)({ className: 'row' }, [(0, _dom.div)({ className: 'input-field col s10' }, [(0, _dom.input)({ id: 'input-msg', className: 'validate', autofocus: true }), (0, _dom.label)({ className: 'active' }, 'Type your chat, enter or hit button to send')]), (0, _dom.div)({ className: 'input-field col s2' }, [(0, _dom.a)({ id: 'send-btn', className: 'btn-floating btn-large waves-effect waves-light red' }, [(0, _dom.i)({ className: 'material-icons' }, 'send')])])]);
 	  });
 	
 	  return {
