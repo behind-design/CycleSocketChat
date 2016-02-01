@@ -16,7 +16,5 @@ export function presencePane(DOMSource) {
     ])
   );
   
-  return {
-    DOM: vdom$,
-  }
+  return vdom$;
 }

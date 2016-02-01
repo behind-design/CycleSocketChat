@@ -25,11 +25,11 @@ function model(sendNowStream$) {
 }
 
 function view(state$, DOMSource) {
-  const appBarView$ = appBar(DOMSource).DOM;
+  const appBarView$ = appBar(DOMSource);
   
-  const chatPaneView$ = chatPane(DOMSource).DOM;
-  const presencePaneView$ = presencePane(DOMSource).DOM;
-  const textEntryView$ = textEntryView(state$).DOM;
+  const chatPaneView$ = chatPane(DOMSource);
+  const presencePaneView$ = presencePane(DOMSource);
+  const textEntryView$ = textEntryView(state$);
   
   const vtree$ = state$.map(state =>
     div([
@@ -57,7 +57,7 @@ function main(sources) {
   
   const sink = {
     DOM: view(state$, sources.DOM),
-    EffectHttpSendButtonCliked: textStreamWithSendButtonClicked$,
+    EffectHttpSendButtonClicked: textStreamWithSendButtonClicked$,
     EffectHttpEnterKeyPressed: textStream$,
   }
     
@@ -66,7 +66,7 @@ function main(sources) {
 
 run(main, {
   DOM: makeDOMDriver('#app'),
-  EffectHttpSendButtonCliked: function(textStream$) {    
+  EffectHttpSendButtonClicked: function(textStream$) {    
     textStream$.subscribe((textStream) => {
       console.log(textStream.value);
       textStream.focus();

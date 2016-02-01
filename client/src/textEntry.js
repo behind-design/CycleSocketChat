@@ -28,7 +28,5 @@ export function textEntryView(state$) {
     ])                      
   );    
   
-  return {
-    DOM: vdom$,
-  }
+  return vdom$;
 }

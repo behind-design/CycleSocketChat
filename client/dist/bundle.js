@@ -80,11 +80,11 @@
 	}
 	
 	function view(state$, DOMSource) {
-	  var appBarView$ = (0, _appBar.appBar)(DOMSource).DOM;
+	  var appBarView$ = (0, _appBar.appBar)(DOMSource);
 	
-	  var chatPaneView$ = (0, _chatPane.chatPane)(DOMSource).DOM;
-	  var presencePaneView$ = (0, _presencePane.presencePane)(DOMSource).DOM;
-	  var textEntryView$ = (0, _textEntry.textEntryView)(state$).DOM;
+	  var chatPaneView$ = (0, _chatPane.chatPane)(DOMSource);
+	  var presencePaneView$ = (0, _presencePane.presencePane)(DOMSource);
+	  var textEntryView$ = (0, _textEntry.textEntryView)(state$);
 	
 	  var vtree$ = state$.map(function (state) {
 	    return (0, _dom.div)([appBarView$, (0, _dom.div)({ className: 'row' }, [(0, _dom.div)({ className: 'col s6' }, [(0, _dom.h4)('Chat Messages'), textEntryView$]), (0, _dom.div)({ className: 'col s6' }, [presencePaneView$])])]);
@@ -101,7 +101,7 @@
 	
 	  var sink = {
 	    DOM: view(state$, sources.DOM),
-	    EffectHttpSendButtonCliked: textStreamWithSendButtonClicked$,
+	    EffectHttpSendButtonClicked: textStreamWithSendButtonClicked$,
 	    EffectHttpEnterKeyPressed: textStream$
 	  };
 	
@@ -110,7 +110,7 @@
 	
 	(0, _core.run)(main, {
 	  DOM: (0, _dom.makeDOMDriver)('#app'),
-	  EffectHttpSendButtonCliked: function EffectHttpSendButtonCliked(textStream$) {
+	  EffectHttpSendButtonClicked: function EffectHttpSendButtonClicked(textStream$) {
 	    textStream$.subscribe(function (textStream) {
 	      console.log(textStream.value);
 	      textStream.focus();
@@ -16837,9 +16837,7 @@
 	function appBar(DOMSource) {
 	  var vdom$ = _rx.Observable.of((0, _dom.div)({ className: 'navbar-fixed' }, [(0, _dom.nav)([(0, _dom.div)({ className: 'nav-wrapper' }, [(0, _dom.a)({ className: 'brand-logo center', href: '#' }, 'Cycle Socket Chat')])])]));
 	
-	  return {
-	    DOM: vdom$
-	  };
+	  return vdom$;
 	}
 
 /***/ },
@@ -16880,9 +16878,7 @@
 	  ])*/
 	  );
 	
-	  return {
-	    DOM: vdom$
-	  };
+	  return vdom$;
 	}
 
 /***/ },
@@ -16903,9 +16899,7 @@
 	function presencePane(DOMSource) {
 	  var vdom$ = _rx.Observable.of((0, _dom.div)([(0, _dom.h4)('Active Users'), (0, _dom.table)({ className: 'striped' }, [(0, _dom.thead)([(0, _dom.tr)([(0, _dom.th)({ 'data-field': 'id' }, 'Nickname', []), (0, _dom.th)({ 'data-field': 'name' }, 'Time joined', [])])])])]));
 	
-	  return {
-	    DOM: vdom$
-	  };
+	  return vdom$;
 	}
 
 /***/ },
@@ -16946,9 +16940,7 @@
 	    return (0, _dom.div)({ className: 'row' }, [(0, _dom.div)({ className: 'input-field col s10' }, [(0, _dom.input)({ id: 'input-msg', className: 'validate', autofocus: true }), (0, _dom.label)({ className: 'active' }, 'Type your chat, enter or hit button to send')]), (0, _dom.div)({ className: 'input-field col s2' }, [(0, _dom.a)({ id: 'send-btn', className: 'btn-floating btn-large waves-effect waves-light red' }, [(0, _dom.i)({ className: 'material-icons' }, 'send')])])]);
 	  });
 	
-	  return {
-	    DOM: vdom$
-	  };
+	  return vdom$;
 	}
 
 /***/ }

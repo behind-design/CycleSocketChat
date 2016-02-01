@@ -24,7 +24,5 @@ export function chatPane(DOMSource) {
     ])*/
   );    
   
-  return {
-    DOM: vdom$,    
-  }
+  return vdom$;
 }

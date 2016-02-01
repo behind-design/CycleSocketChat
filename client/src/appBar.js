@@ -12,7 +12,5 @@ export function appBar(DOMSource) {
     ])
   );
   
-  return {
-    DOM: vdom$
-  }
+  return vdom$;
 }
