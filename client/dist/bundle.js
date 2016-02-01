@@ -60,31 +60,23 @@
 	
 	var _textEntry = __webpack_require__(66);
 	
-	function intentByBtnClick(DOMSource) {
-	  var _textEntryLoseFocus = (0, _textEntry.textEntryLoseFocus)(DOMSource);
+	function intentWithSendButtonClicked(DOMSource) {
+	  var _textEntryIntentWithS = (0, _textEntry.textEntryIntentWithSendButtonClicked)(DOMSource);
 	
-	  var buttonClick$ = _textEntryLoseFocus.buttonClick$;
-	  var textStream$ = _textEntryLoseFocus.textStream$;
+	  var textStream$ = _textEntryIntentWithS.textStream$;
+	  var buttonClick$ = _textEntryIntentWithS.buttonClick$;
 	
 	  return buttonClick$.withLatestFrom(textStream$, function (buttonClick, textStream) {
 	    return textStream;
 	  });
 	}
 	
-	function intentByEnterKeyPressed(DOMSource) {
-	  var textStream$ = (0, _textEntry.textEntryIntent)(DOMSource);
-	  return textStream$;
-	
-	  /*
-	  return Rx.Observable.combineLatest(enterKeyPressed$, (enterKeyPressed) => {
-	    return {textStream, sendNowStream};
-	  });*/
+	function intentTextEntry(DOMSource) {
+	  return (0, _textEntry.textEntryIntent)(DOMSource);
 	}
 	
 	function model(sendNowStream$) {
-	  return _rx.Observable.combineLatest(sendNowStream$.startWith(''), function () {
-	    return { textValue: '' };
-	  });
+	  return _rx.Observable.of({});
 	}
 	
 	function view(state$, DOMSource) {
@@ -98,33 +90,36 @@
 	    return (0, _dom.div)([appBarView$, (0, _dom.div)({ className: 'row' }, [(0, _dom.div)({ className: 'col s6' }, [(0, _dom.h4)('Chat Messages'), textEntryView$]), (0, _dom.div)({ className: 'col s6' }, [presencePaneView$])])]);
 	  });
 	
-	  return {
-	    DOM: vtree$
-	  };
+	  return vtree$;
 	}
 	
 	function main(sources) {
-	  var lostFocusStream$ = intentByBtnClick(sources.DOM);
-	  var textStream$ = intentByEnterKeyPressed(sources.DOM);
-	  var state$ = model(lostFocusStream$);
-	  var sink = view(state$, sources.DOM);
-	  sink['SetFocusEffect'] = lostFocusStream$;
-	  sink['HttpPostEffect'] = textStream$;
+	  var textStreamWithSendButtonClicked$ = intentWithSendButtonClicked(sources.DOM);
+	  var textStream$ = intentTextEntry(sources.DOM);
+	
+	  var state$ = model(textStream$);
+	
+	  var sink = {
+	    DOM: view(state$, sources.DOM),
+	    EffectHttpSendButtonCliked: textStreamWithSendButtonClicked$,
+	    EffectHttpEnterKeyPressed: textStream$
+	  };
+	
 	  return sink;
 	}
 	
 	(0, _core.run)(main, {
 	  DOM: (0, _dom.makeDOMDriver)('#app'),
-	  SetFocusEffect: function SetFocusEffect(textStream$) {
+	  EffectHttpSendButtonCliked: function EffectHttpSendButtonCliked(textStream$) {
 	    textStream$.subscribe(function (textStream) {
 	      console.log(textStream.value);
 	      textStream.focus();
 	      textStream.value = '';
 	    });
 	  },
-	  HttpPostEffect: function HttpPostEffect(textStream$) {
-	    textStream$.filter(function (e) {
-	      return e.keyCode === 13;
+	  EffectHttpEnterKeyPressed: function EffectHttpEnterKeyPressed(textStream$) {
+	    textStream$.filter(function (textStream) {
+	      return textStream.keyCode === 13;
 	    }).subscribe(function (textStream) {
 	      console.log(textStream.target.value);
 	      textStream.target.focus();
@@ -16922,7 +16917,7 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	exports.textEntryLoseFocus = textEntryLoseFocus;
+	exports.textEntryIntentWithSendButtonClicked = textEntryIntentWithSendButtonClicked;
 	exports.textEntryIntent = textEntryIntent;
 	exports.textEntryView = textEntryView;
 	
@@ -16930,8 +16925,7 @@
 	
 	var _dom = __webpack_require__(5);
 	
-	function textEntryLoseFocus(DOMSource) {
-	  //const textEntryBlur$ = DOMSource.select('#input-msg').events('blur').map(e => e.target);
+	function textEntryIntentWithSendButtonClicked(DOMSource) {
 	  var textStream$ = DOMSource.select('#input-msg').events('keyup').map(function (e) {
 	    return e.target;
 	  });
@@ -16939,21 +16933,11 @@
 	    return e.target;
 	  });
 	
-	  return { buttonClick$: buttonClick$, textStream$: textStream$ };
+	  return { textStream$: textStream$, buttonClick$: buttonClick$ };
 	}
 	
 	function textEntryIntent(DOMSource) {
-	  var buttonClick$ = DOMSource.select('#send-btn').events('click').map(function (e) {
-	    return e.target;
-	  });
-	  var enterKeyPressed$ = DOMSource.select('#input-msg').events('keyup').filter(function (e) {
-	    return e.keyCode == 13;
-	  });
-	  //const textStream$ = DOMSource.select('#input-msg').events('keyup').map(e => e.target.value);
 	  var textStream$ = DOMSource.select('#input-msg').events('keyup');
-	  var sendNowStream$ = Rx.Observable.merge(buttonClick$, enterKeyPressed$);
-	
-	  //return {textStream$, sendNowStream$};
 	  return textStream$;
 	}
 	

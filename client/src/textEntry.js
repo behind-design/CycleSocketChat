@@ -1,22 +1,15 @@
 import {Observable} from 'rx';
 import {h4, div, ul, li, span, p, input, label, a, i} from '@cycle/dom';
 
-export function textEntryLoseFocus(DOMSource) {
-  //const textEntryBlur$ = DOMSource.select('#input-msg').events('blur').map(e => e.target);
+export function textEntryIntentWithSendButtonClicked(DOMSource) {
   const textStream$ = DOMSource.select('#input-msg').events('keyup').map(e => e.target);
   const buttonClick$ = DOMSource.select('#send-btn').events('click').map(e => e.target);
 
-  return {buttonClick$, textStream$};
+  return {textStream$, buttonClick$};
 }
 
-export function textEntryIntent(DOMSource) {
-  const buttonClick$ = DOMSource.select('#send-btn').events('click').map(e => e.target);
-  const enterKeyPressed$ = DOMSource.select('#input-msg').events('keyup').filter(e => e.keyCode == 13);
-  //const textStream$ = DOMSource.select('#input-msg').events('keyup').map(e => e.target.value);
-  const textStream$ = DOMSource.select('#input-msg').events('keyup');
-  const sendNowStream$ = Rx.Observable.merge(buttonClick$, enterKeyPressed$); 
-  
-  //return {textStream$, sendNowStream$};
+export function textEntryIntent(DOMSource) {    
+  const textStream$ = DOMSource.select('#input-msg').events('keyup');  
   return textStream$;
 }
   

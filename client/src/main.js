@@ -4,33 +4,24 @@ import {h4, h2, div, label, nav, a, makeDOMDriver} from '@cycle/dom';
 import {appBar} from './appBar.js';
 import {chatPane} from './chatPane.js';
 import {presencePane} from './presencePane.js';
-import {textEntryIntent} from './textEntry.js';
 import {textEntryView} from './textEntry.js';
-import {textEntryLoseFocus} from './textEntry.js';
+import {textEntryIntent} from './textEntry.js';
+import {textEntryIntentWithSendButtonClicked} from './textEntry.js';
 
-function intentByBtnClick(DOMSource) {
-  const {buttonClick$, textStream$} = textEntryLoseFocus(DOMSource);
+function intentWithSendButtonClicked(DOMSource) {
+  const {textStream$, buttonClick$} = textEntryIntentWithSendButtonClicked(DOMSource);
   
   return buttonClick$.withLatestFrom(textStream$, (buttonClick, textStream) => {
     return textStream;
   });
 }
 
-function intentByEnterKeyPressed(DOMSource) {
-  const textStream$ = textEntryIntent(DOMSource);
-  return textStream$; 
-  
-  /*
-  return Rx.Observable.combineLatest(enterKeyPressed$, (enterKeyPressed) => {
-    return {textStream, sendNowStream};
-  });*/
+function intentTextEntry(DOMSource) {
+  return textEntryIntent(DOMSource);
 }
 
 function model(sendNowStream$) {
-  return Observable.combineLatest(
-    sendNowStream$.startWith(''),
-    () => {return {textValue: ''}}
-  );
+  return Observable.of({});
 }
 
 function view(state$, DOMSource) {
@@ -54,33 +45,36 @@ function view(state$, DOMSource) {
       ])
     ])
   );
-    
-  return {
-    DOM: vtree$,
-  };  
+  
+  return vtree$; 
 }
 
 function main(sources) {
-  const lostFocusStream$ = intentByBtnClick(sources.DOM);
-  const textStream$ = intentByEnterKeyPressed(sources.DOM);
-  const state$ = model(lostFocusStream$);
-  var sink = view(state$, sources.DOM);
-  sink['SetFocusEffect'] = lostFocusStream$;
-  sink['HttpPostEffect'] = textStream$;
+  const textStreamWithSendButtonClicked$ = intentWithSendButtonClicked(sources.DOM);
+  const textStream$ = intentTextEntry(sources.DOM);
+  
+  const state$ = model(textStream$);
+  
+  const sink = {
+    DOM: view(state$, sources.DOM),
+    EffectHttpSendButtonCliked: textStreamWithSendButtonClicked$,
+    EffectHttpEnterKeyPressed: textStream$,
+  }
+    
   return sink;
 }
 
 run(main, {
   DOM: makeDOMDriver('#app'),
-  SetFocusEffect: function(textStream$) {    
+  EffectHttpSendButtonCliked: function(textStream$) {    
     textStream$.subscribe((textStream) => {
       console.log(textStream.value);
       textStream.focus();
       textStream.value = '';
     })
   },
-  HttpPostEffect: function(textStream$) {
-    textStream$.filter(e => e.keyCode === 13).subscribe((textStream) => {
+  EffectHttpEnterKeyPressed: function(textStream$) {
+    textStream$.filter(textStream => textStream.keyCode === 13).subscribe((textStream) => {
       console.log(textStream.target.value);
       textStream.target.focus();
       textStream.target.value = '';
