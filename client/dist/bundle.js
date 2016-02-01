@@ -46,7 +46,9 @@
 
 	'use strict';
 	
-	var _core = __webpack_require__(1);
+	var _rx = __webpack_require__(1);
+	
+	var _core = __webpack_require__(4);
 	
 	var _dom = __webpack_require__(5);
 	
@@ -58,30 +60,29 @@
 	
 	var _textEntry = __webpack_require__(66);
 	
-	function intentLoseFocus(DOMSource) {
+	function intentByBtnClick(DOMSource) {
 	  var _textEntryLoseFocus = (0, _textEntry.textEntryLoseFocus)(DOMSource);
 	
 	  var buttonClick$ = _textEntryLoseFocus.buttonClick$;
-	  var textEntryBlur$ = _textEntryLoseFocus.textEntryBlur$;
+	  var textStream$ = _textEntryLoseFocus.textStream$;
 	
-	  return Rx.Observable.combineLatest(buttonClick$, textEntryBlur$, function (buttonClick, textEntryBlur) {
-	    return { buttonClick: buttonClick, textEntryBlur: textEntryBlur };
+	  return buttonClick$.withLatestFrom(textStream$, function (buttonClick, textStream) {
+	    return textStream;
 	  });
 	}
 	
-	function intent(DOMSource) {
-	  var _textEntryIntent = (0, _textEntry.textEntryIntent)(DOMSource);
+	function intentByEnterKeyPressed(DOMSource) {
+	  var textStream$ = (0, _textEntry.textEntryIntent)(DOMSource);
+	  return textStream$;
 	
-	  var textStream$ = _textEntryIntent.textStream$;
-	  var sendNowStream$ = _textEntryIntent.sendNowStream$;
-	
-	  return Rx.Observable.combineLatest(textStream$, sendNowStream$, function (textStream, sendNowStream) {
-	    return { textStream: textStream, sendNowStream: sendNowStream };
-	  });
+	  /*
+	  return Rx.Observable.combineLatest(enterKeyPressed$, (enterKeyPressed) => {
+	    return {textStream, sendNowStream};
+	  });*/
 	}
 	
 	function model(sendNowStream$) {
-	  return Rx.Observable.combineLatest(sendNowStream$.startWith(true), function () {
+	  return _rx.Observable.combineLatest(sendNowStream$.startWith(''), function () {
 	    return { textValue: '' };
 	  });
 	}
@@ -103,175 +104,37 @@
 	}
 	
 	function main(sources) {
-	  var lostFocusStream$ = intentLoseFocus(sources.DOM);
-	  var httpStream$ = intent(sources.DOM);
-	
-	  var state$ = model(httpStream$);
+	  var lostFocusStream$ = intentByBtnClick(sources.DOM);
+	  var textStream$ = intentByEnterKeyPressed(sources.DOM);
+	  var state$ = model(lostFocusStream$);
 	  var sink = view(state$, sources.DOM);
 	  sink['SetFocusEffect'] = lostFocusStream$;
-	  sink['HttpPostEffect'] = httpStream$;
+	  sink['HttpPostEffect'] = textStream$;
 	  return sink;
 	}
 	
 	(0, _core.run)(main, {
 	  DOM: (0, _dom.makeDOMDriver)('#app'),
-	  SetFocusEffect: function SetFocusEffect(lostFocusStream$) {
-	    lostFocusStream$.subscribe(function (lostFocusStream) {
-	      //console.log(lostFocusStream.buttonClick);
-	      //console.log(lostFocusStream.textEntryBlur);
-	      lostFocusStream.textEntryBlur.focus();
-	      lostFocusStream.textEntryBlur.value = '';
+	  SetFocusEffect: function SetFocusEffect(textStream$) {
+	    textStream$.subscribe(function (textStream) {
+	      console.log(textStream.value);
+	      textStream.focus();
+	      textStream.value = '';
 	    });
 	  },
-	  HttpPostEffect: function HttpPostEffect(httpStream$) {
-	    httpStream$.subscribe(function (httpStream) {
-	      console.log(httpStream.textStream);
+	  HttpPostEffect: function HttpPostEffect(textStream$) {
+	    textStream$.filter(function (e) {
+	      return e.keyCode === 13;
+	    }).subscribe(function (textStream) {
+	      console.log(textStream.target.value);
+	      textStream.target.focus();
+	      textStream.target.value = '';
 	    });
 	  }
 	});
 
 /***/ },
 /* 1 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-	
-	var Rx = __webpack_require__(2);
-	
-	function makeSinkProxies(drivers) {
-	  var sinkProxies = {};
-	  for (var _name in drivers) {
-	    if (drivers.hasOwnProperty(_name)) {
-	      sinkProxies[_name] = new Rx.ReplaySubject(1);
-	    }
-	  }
-	  return sinkProxies;
-	}
-	
-	function callDrivers(drivers, sinkProxies) {
-	  var sources = {};
-	  for (var _name2 in drivers) {
-	    if (drivers.hasOwnProperty(_name2)) {
-	      sources[_name2] = drivers[_name2](sinkProxies[_name2], _name2);
-	    }
-	  }
-	  return sources;
-	}
-	
-	function attachDisposeToSinks(sinks, replicationSubscription) {
-	  Object.defineProperty(sinks, "dispose", {
-	    enumerable: false,
-	    value: function value() {
-	      replicationSubscription.dispose();
-	    }
-	  });
-	  return sinks;
-	}
-	
-	function makeDisposeSources(sources) {
-	  return function dispose() {
-	    for (var _name3 in sources) {
-	      if (sources.hasOwnProperty(_name3) && typeof sources[_name3].dispose === "function") {
-	        sources[_name3].dispose();
-	      }
-	    }
-	  };
-	}
-	
-	function attachDisposeToSources(sources) {
-	  Object.defineProperty(sources, "dispose", {
-	    enumerable: false,
-	    value: makeDisposeSources(sources)
-	  });
-	  return sources;
-	}
-	
-	function logToConsoleError(err) {
-	  var target = err.stack || err;
-	  if (console && console.error) {
-	    console.error(target);
-	  }
-	}
-	
-	function replicateMany(observables, subjects) {
-	  return Rx.Observable.create(function (observer) {
-	    var subscription = new Rx.CompositeDisposable();
-	    setTimeout(function () {
-	      for (var _name4 in observables) {
-	        if (observables.hasOwnProperty(_name4) && subjects.hasOwnProperty(_name4) && !subjects[_name4].isDisposed) {
-	          subscription.add(observables[_name4].doOnError(logToConsoleError).subscribe(subjects[_name4].asObserver()));
-	        }
-	      }
-	      observer.onNext(subscription);
-	    }, 1);
-	
-	    return function dispose() {
-	      subscription.dispose();
-	      for (var x in subjects) {
-	        if (subjects.hasOwnProperty(x)) {
-	          subjects[x].dispose();
-	        }
-	      }
-	    };
-	  });
-	}
-	
-	function isObjectEmpty(obj) {
-	  for (var key in obj) {
-	    if (obj.hasOwnProperty(key)) {
-	      return false;
-	    }
-	  }
-	  return true;
-	}
-	
-	function run(main, drivers) {
-	  if (typeof main !== "function") {
-	    throw new Error("First argument given to Cycle.run() must be the 'main' " + "function.");
-	  }
-	  if (typeof drivers !== "object" || drivers === null) {
-	    throw new Error("Second argument given to Cycle.run() must be an object " + "with driver functions as properties.");
-	  }
-	  if (isObjectEmpty(drivers)) {
-	    throw new Error("Second argument given to Cycle.run() must be an object " + "with at least one driver function declared as a property.");
-	  }
-	
-	  var sinkProxies = makeSinkProxies(drivers);
-	  var sources = callDrivers(drivers, sinkProxies);
-	  var sinks = main(sources);
-	  var subscription = replicateMany(sinks, sinkProxies).subscribe();
-	  var sinksWithDispose = attachDisposeToSinks(sinks, subscription);
-	  var sourcesWithDispose = attachDisposeToSources(sources);
-	  return { sources: sourcesWithDispose, sinks: sinksWithDispose };
-	}
-	
-	var Cycle = {
-	  /**
-	   * Takes an `main` function and circularly connects it to the given collection
-	   * of driver functions.
-	   *
-	   * The `main` function expects a collection of "driver source" Observables
-	   * as input, and should return a collection of "driver sink" Observables.
-	   * A "collection of Observables" is a JavaScript object where
-	   * keys match the driver names registered by the `drivers` object, and values
-	   * are Observables or a collection of Observables.
-	   *
-	   * @param {Function} main a function that takes `sources` as input
-	   * and outputs a collection of `sinks` Observables.
-	   * @param {Object} drivers an object where keys are driver names and values
-	   * are driver functions.
-	   * @return {Object} an object with two properties: `sources` and `sinks`.
-	   * `sinks` is the collection of driver sinks, and `sources` is the collection
-	   * of driver sources, that can be used for debugging or testing.
-	   * @function run
-	   */
-	  run: run
-	};
-	
-	module.exports = Cycle;
-
-/***/ },
-/* 2 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global, process) {// Copyright (c) Microsoft, All rights reserved. See License.txt in the project root for license information.
@@ -12470,10 +12333,10 @@
 	
 	}.call(this));
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(3)(module), (function() { return this; }()), __webpack_require__(4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2)(module), (function() { return this; }()), __webpack_require__(3)))
 
 /***/ },
-/* 3 */
+/* 2 */
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -12489,7 +12352,7 @@
 
 
 /***/ },
-/* 4 */
+/* 3 */
 /***/ function(module, exports) {
 
 	// shim for using process in browser
@@ -12584,6 +12447,146 @@
 	};
 	process.umask = function() { return 0; };
 
+
+/***/ },
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	
+	var Rx = __webpack_require__(1);
+	
+	function makeSinkProxies(drivers) {
+	  var sinkProxies = {};
+	  for (var _name in drivers) {
+	    if (drivers.hasOwnProperty(_name)) {
+	      sinkProxies[_name] = new Rx.ReplaySubject(1);
+	    }
+	  }
+	  return sinkProxies;
+	}
+	
+	function callDrivers(drivers, sinkProxies) {
+	  var sources = {};
+	  for (var _name2 in drivers) {
+	    if (drivers.hasOwnProperty(_name2)) {
+	      sources[_name2] = drivers[_name2](sinkProxies[_name2], _name2);
+	    }
+	  }
+	  return sources;
+	}
+	
+	function attachDisposeToSinks(sinks, replicationSubscription) {
+	  Object.defineProperty(sinks, "dispose", {
+	    enumerable: false,
+	    value: function value() {
+	      replicationSubscription.dispose();
+	    }
+	  });
+	  return sinks;
+	}
+	
+	function makeDisposeSources(sources) {
+	  return function dispose() {
+	    for (var _name3 in sources) {
+	      if (sources.hasOwnProperty(_name3) && typeof sources[_name3].dispose === "function") {
+	        sources[_name3].dispose();
+	      }
+	    }
+	  };
+	}
+	
+	function attachDisposeToSources(sources) {
+	  Object.defineProperty(sources, "dispose", {
+	    enumerable: false,
+	    value: makeDisposeSources(sources)
+	  });
+	  return sources;
+	}
+	
+	function logToConsoleError(err) {
+	  var target = err.stack || err;
+	  if (console && console.error) {
+	    console.error(target);
+	  }
+	}
+	
+	function replicateMany(observables, subjects) {
+	  return Rx.Observable.create(function (observer) {
+	    var subscription = new Rx.CompositeDisposable();
+	    setTimeout(function () {
+	      for (var _name4 in observables) {
+	        if (observables.hasOwnProperty(_name4) && subjects.hasOwnProperty(_name4) && !subjects[_name4].isDisposed) {
+	          subscription.add(observables[_name4].doOnError(logToConsoleError).subscribe(subjects[_name4].asObserver()));
+	        }
+	      }
+	      observer.onNext(subscription);
+	    }, 1);
+	
+	    return function dispose() {
+	      subscription.dispose();
+	      for (var x in subjects) {
+	        if (subjects.hasOwnProperty(x)) {
+	          subjects[x].dispose();
+	        }
+	      }
+	    };
+	  });
+	}
+	
+	function isObjectEmpty(obj) {
+	  for (var key in obj) {
+	    if (obj.hasOwnProperty(key)) {
+	      return false;
+	    }
+	  }
+	  return true;
+	}
+	
+	function run(main, drivers) {
+	  if (typeof main !== "function") {
+	    throw new Error("First argument given to Cycle.run() must be the 'main' " + "function.");
+	  }
+	  if (typeof drivers !== "object" || drivers === null) {
+	    throw new Error("Second argument given to Cycle.run() must be an object " + "with driver functions as properties.");
+	  }
+	  if (isObjectEmpty(drivers)) {
+	    throw new Error("Second argument given to Cycle.run() must be an object " + "with at least one driver function declared as a property.");
+	  }
+	
+	  var sinkProxies = makeSinkProxies(drivers);
+	  var sources = callDrivers(drivers, sinkProxies);
+	  var sinks = main(sources);
+	  var subscription = replicateMany(sinks, sinkProxies).subscribe();
+	  var sinksWithDispose = attachDisposeToSinks(sinks, subscription);
+	  var sourcesWithDispose = attachDisposeToSources(sources);
+	  return { sources: sourcesWithDispose, sinks: sinksWithDispose };
+	}
+	
+	var Cycle = {
+	  /**
+	   * Takes an `main` function and circularly connects it to the given collection
+	   * of driver functions.
+	   *
+	   * The `main` function expects a collection of "driver source" Observables
+	   * as input, and should return a collection of "driver sink" Observables.
+	   * A "collection of Observables" is a JavaScript object where
+	   * keys match the driver names registered by the `drivers` object, and values
+	   * are Observables or a collection of Observables.
+	   *
+	   * @param {Function} main a function that takes `sources` as input
+	   * and outputs a collection of `sinks` Observables.
+	   * @param {Object} drivers an object where keys are driver names and values
+	   * are driver functions.
+	   * @return {Object} an object with two properties: `sources` and `sinks`.
+	   * `sinks` is the collection of driver sinks, and `sources` is the collection
+	   * of driver sources, that can be used for debugging or testing.
+	   * @function run
+	   */
+	  run: run
+	};
+	
+	module.exports = Cycle;
 
 /***/ },
 /* 5 */
@@ -13790,7 +13793,7 @@
 	
 	var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; })();
 	
-	var Rx = __webpack_require__(2);
+	var Rx = __webpack_require__(1);
 	var fromEvent = __webpack_require__(27);
 	var VDOM = {
 	  h: __webpack_require__(8),
@@ -14086,7 +14089,7 @@
 
 	"use strict";
 	
-	var Rx = __webpack_require__(2);
+	var Rx = __webpack_require__(1);
 	
 	var disposableCreate = Rx.Disposable.create;
 	var CompositeDisposable = Rx.CompositeDisposable;
@@ -15993,7 +15996,7 @@
 
 	"use strict";
 	
-	var Rx = __webpack_require__(2);
+	var Rx = __webpack_require__(1);
 	var VirtualNode = __webpack_require__(9);
 	
 	/**
@@ -16064,7 +16067,7 @@
 
 	"use strict";
 	
-	var Rx = __webpack_require__(2);
+	var Rx = __webpack_require__(1);
 	var toHTML = __webpack_require__(49);
 	
 	var _require = __webpack_require__(46);
@@ -16727,7 +16730,7 @@
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 	
-	var _rx = __webpack_require__(2);
+	var _rx = __webpack_require__(1);
 	
 	var _rx2 = _interopRequireDefault(_rx);
 	
@@ -16832,7 +16835,7 @@
 	});
 	exports.appBar = appBar;
 	
-	var _rx = __webpack_require__(2);
+	var _rx = __webpack_require__(1);
 	
 	var _dom = __webpack_require__(5);
 	
@@ -16855,7 +16858,7 @@
 	});
 	exports.chatPane = chatPane;
 	
-	var _rx = __webpack_require__(2);
+	var _rx = __webpack_require__(1);
 	
 	var _dom = __webpack_require__(5);
 	
@@ -16898,7 +16901,7 @@
 	});
 	exports.presencePane = presencePane;
 	
-	var _rx = __webpack_require__(2);
+	var _rx = __webpack_require__(1);
 	
 	var _dom = __webpack_require__(5);
 	
@@ -16923,35 +16926,35 @@
 	exports.textEntryIntent = textEntryIntent;
 	exports.textEntryView = textEntryView;
 	
-	var _rx = __webpack_require__(2);
+	var _rx = __webpack_require__(1);
 	
 	var _dom = __webpack_require__(5);
 	
 	function textEntryLoseFocus(DOMSource) {
+	  //const textEntryBlur$ = DOMSource.select('#input-msg').events('blur').map(e => e.target);
+	  var textStream$ = DOMSource.select('#input-msg').events('keyup').map(function (e) {
+	    return e.target;
+	  });
 	  var buttonClick$ = DOMSource.select('#send-btn').events('click').map(function (e) {
 	    return e.target;
 	  });
-	  var textEntryBlur$ = DOMSource.select('#input-msg').events('blur').map(function (e) {
-	    return e.target;
-	  });
-	  return { buttonClick$: buttonClick$, textEntryBlur$: textEntryBlur$ };
+	
+	  return { buttonClick$: buttonClick$, textStream$: textStream$ };
 	}
 	
 	function textEntryIntent(DOMSource) {
-	  var sendBtnClickStream$ = DOMSource.select('#send-btn').events('click').map(function () {
-	    return true;
+	  var buttonClick$ = DOMSource.select('#send-btn').events('click').map(function (e) {
+	    return e.target;
 	  });
-	  var enterKeyPressedStream$ = DOMSource.select('#input-msg').events('keyup').filter(function (e) {
+	  var enterKeyPressed$ = DOMSource.select('#input-msg').events('keyup').filter(function (e) {
 	    return e.keyCode == 13;
 	  });
-	  var textStream$ = DOMSource.select('#input-msg').events('keyup').map(function (e) {
-	    return e.target.value;
-	  });
-	  var sendNowStream$ = Rx.Observable.merge(sendBtnClickStream$, enterKeyPressedStream$);
+	  //const textStream$ = DOMSource.select('#input-msg').events('keyup').map(e => e.target.value);
+	  var textStream$ = DOMSource.select('#input-msg').events('keyup');
+	  var sendNowStream$ = Rx.Observable.merge(buttonClick$, enterKeyPressed$);
 	
-	  return {
-	    textStream$: textStream$, sendNowStream$: sendNowStream$
-	  };
+	  //return {textStream$, sendNowStream$};
+	  return textStream$;
 	}
 	
 	function textEntryView(state$) {
