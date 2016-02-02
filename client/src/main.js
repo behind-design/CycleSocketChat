@@ -5,7 +5,7 @@ import {appBar} from './appBar.js';
 import {chatPane} from './chatPane.js';
 import {presencePane} from './presencePane.js';
 import {textEntryView} from './textEntry.js';
-import {textEntryIntent} from './textEntry.js';
+import {textEntryIntentWithEnterKeyPressed} from './textEntry.js';
 import {textEntryIntentWithSendButtonClicked} from './textEntry.js';
 
 function intentWithSendButtonClicked(DOMSource) {
@@ -16,8 +16,16 @@ function intentWithSendButtonClicked(DOMSource) {
   });
 }
 
-function intentTextEntry(DOMSource) {
-  return textEntryIntent(DOMSource);
+function intentWithEnterKeyPressed(DOMSource) {
+  const {textStream$, enterKeyPressed$} = textEntryIntentWithEnterKeyPressed(DOMSource);
+  
+  return enterKeyPressed$.withLatestFrom(textStream$, (enterKeyPressed, textStream) => {
+    return textStream;
+  });
+}
+
+function intent(DOMSource) {
+  return Observable.merge(intentWithSendButtonClicked(DOMSource), intentWithEnterKeyPressed(DOMSource));
 }
 
 function model(sendNowStream$) {
@@ -50,15 +58,13 @@ function view(state$, DOMSource) {
 }
 
 function main(sources) {
-  const textStreamWithSendButtonClicked$ = intentWithSendButtonClicked(sources.DOM);
-  const textStream$ = intentTextEntry(sources.DOM);
+  const textStream$ = intent(sources.DOM);
   
   const state$ = model(textStream$);
   
   const sink = {
     DOM: view(state$, sources.DOM),
-    EffectHttpSendButtonClicked: textStreamWithSendButtonClicked$,
-    EffectHttpEnterKeyPressed: textStream$,
+    EffectHttp: textStream$,
   }
     
   return sink;
@@ -66,18 +72,11 @@ function main(sources) {
 
 run(main, {
   DOM: makeDOMDriver('#app'),
-  EffectHttpSendButtonClicked: function(textStream$) {    
+  EffectHttp: function(textStream$) {    
     textStream$.subscribe((textStream) => {
       console.log(textStream.value);
       textStream.focus();
       textStream.value = '';
     })
-  },
-  EffectHttpEnterKeyPressed: function(textStream$) {
-    textStream$.filter(textStream => textStream.keyCode === 13).subscribe((textStream) => {
-      console.log(textStream.target.value);
-      textStream.target.focus();
-      textStream.target.value = '';
-    });
-  },
+  }
 });

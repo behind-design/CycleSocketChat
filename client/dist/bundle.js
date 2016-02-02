@@ -71,8 +71,19 @@
 	  });
 	}
 	
-	function intentTextEntry(DOMSource) {
-	  return (0, _textEntry.textEntryIntent)(DOMSource);
+	function intentWithEnterKeyPressed(DOMSource) {
+	  var _textEntryIntentWithE = (0, _textEntry.textEntryIntentWithEnterKeyPressed)(DOMSource);
+	
+	  var textStream$ = _textEntryIntentWithE.textStream$;
+	  var enterKeyPressed$ = _textEntryIntentWithE.enterKeyPressed$;
+	
+	  return enterKeyPressed$.withLatestFrom(textStream$, function (enterKeyPressed, textStream) {
+	    return textStream;
+	  });
+	}
+	
+	function intent(DOMSource) {
+	  return _rx.Observable.merge(intentWithSendButtonClicked(DOMSource), intentWithEnterKeyPressed(DOMSource));
 	}
 	
 	function model(sendNowStream$) {
@@ -94,15 +105,13 @@
 	}
 	
 	function main(sources) {
-	  var textStreamWithSendButtonClicked$ = intentWithSendButtonClicked(sources.DOM);
-	  var textStream$ = intentTextEntry(sources.DOM);
+	  var textStream$ = intent(sources.DOM);
 	
 	  var state$ = model(textStream$);
 	
 	  var sink = {
 	    DOM: view(state$, sources.DOM),
-	    EffectHttpSendButtonClicked: textStreamWithSendButtonClicked$,
-	    EffectHttpEnterKeyPressed: textStream$
+	    EffectHttp: textStream$
 	  };
 	
 	  return sink;
@@ -110,20 +119,11 @@
 	
 	(0, _core.run)(main, {
 	  DOM: (0, _dom.makeDOMDriver)('#app'),
-	  EffectHttpSendButtonClicked: function EffectHttpSendButtonClicked(textStream$) {
+	  EffectHttp: function EffectHttp(textStream$) {
 	    textStream$.subscribe(function (textStream) {
 	      console.log(textStream.value);
 	      textStream.focus();
 	      textStream.value = '';
-	    });
-	  },
-	  EffectHttpEnterKeyPressed: function EffectHttpEnterKeyPressed(textStream$) {
-	    textStream$.filter(function (textStream) {
-	      return textStream.keyCode === 13;
-	    }).subscribe(function (textStream) {
-	      console.log(textStream.target.value);
-	      textStream.target.focus();
-	      textStream.target.value = '';
 	    });
 	  }
 	});
@@ -16912,7 +16912,7 @@
 	  value: true
 	});
 	exports.textEntryIntentWithSendButtonClicked = textEntryIntentWithSendButtonClicked;
-	exports.textEntryIntent = textEntryIntent;
+	exports.textEntryIntentWithEnterKeyPressed = textEntryIntentWithEnterKeyPressed;
 	exports.textEntryView = textEntryView;
 	
 	var _rx = __webpack_require__(1);
@@ -16930,9 +16930,19 @@
 	  return { textStream$: textStream$, buttonClick$: buttonClick$ };
 	}
 	
-	function textEntryIntent(DOMSource) {
-	  var textStream$ = DOMSource.select('#input-msg').events('keyup');
-	  return textStream$;
+	function textEntryIntentWithEnterKeyPressed(DOMSource) {
+	  var textStream$ = DOMSource.select('#input-msg').events('keyup').filter(function (textStream) {
+	    return textStream.keyCode !== 13;
+	  }).map(function (e) {
+	    return e.target;
+	  });
+	  var enterKeyPressed$ = DOMSource.select('#input-msg').events('keyup').filter(function (textStream) {
+	    return textStream.keyCode === 13;
+	  }).map(function (e) {
+	    return e.target;
+	  });
+	
+	  return { textStream$: textStream$, enterKeyPressed$: enterKeyPressed$ };
 	}
 	
 	function textEntryView(state$) {

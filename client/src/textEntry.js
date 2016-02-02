@@ -8,9 +8,11 @@ export function textEntryIntentWithSendButtonClicked(DOMSource) {
   return {textStream$, buttonClick$};
 }
 
-export function textEntryIntent(DOMSource) {    
-  const textStream$ = DOMSource.select('#input-msg').events('keyup');  
-  return textStream$;
+export function textEntryIntentWithEnterKeyPressed(DOMSource) {    
+  const textStream$ = DOMSource.select('#input-msg').events('keyup').filter(textStream => textStream.keyCode !== 13).map(e => e.target);
+  const enterKeyPressed$ = DOMSource.select('#input-msg').events('keyup').filter(textStream => textStream.keyCode === 13).map(e => e.target);
+  
+  return {textStream$, enterKeyPressed$};
 }
   
 export function textEntryView(state$) {  
