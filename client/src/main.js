@@ -30,7 +30,6 @@ function intent(DOMSource) {
 
 function model(textStream$) {
   return textStream$.map(t => {
-    console.log(t);
     return {
       inputValue: t.value,
       inputTarget: t,
@@ -70,8 +69,7 @@ function main(sources) {
   
   const sink = {
     DOM: view(sources.DOM),
-    EffectHttp: textStream$,
-    Bogus: state$
+    EffectHttp: state$,
   }
     
   return sink;
@@ -79,16 +77,11 @@ function main(sources) {
 
 run(main, {
   DOM: makeDOMDriver('#app'),
-  EffectHttp: function(textStream$) {    
-    textStream$.subscribe((textStream) => {
-      console.log(textStream.value);
-      //\\textStream.focus();
-      //\\textStream.value = '';
-    })
-  },
-  Bogus: function(state$) {
+  EffectHttp: function(state$) {    
     state$.subscribe((state) => {
-      console.log(state);
-    });
+      console.log(state.inputValue);
+      state.inputTarget.focus();
+      state.inputTarget.value = '';
+    })
   }
 });
