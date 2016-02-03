@@ -28,16 +28,22 @@ function intent(DOMSource) {
   return Observable.merge(intentWithSendButtonClicked(DOMSource), intentWithEnterKeyPressed(DOMSource));
 }
 
-function model(sendNowStream$) {
-  return Observable.of({});
+function model(textStream$) {
+  return textStream$.map(t => {
+    console.log(t);
+    return {
+      inputValue: t.value,
+      inputTarget: t,
+    }
+  });
 }
 
-function view(state$, DOMSource) {
+function view(DOMSource) {
   const appBarView$ = appBar(DOMSource);
   
   const chatPaneView$ = chatPane(DOMSource);
   const presencePaneView$ = presencePane(DOMSource);
-  const textEntryView$ = textEntryView(state$);
+  const textEntryView$ = textEntryView();
   
   const vtree$ = Observable.of(
     div([
@@ -63,8 +69,9 @@ function main(sources) {
   const state$ = model(textStream$);
   
   const sink = {
-    DOM: view(state$, sources.DOM),
+    DOM: view(sources.DOM),
     EffectHttp: textStream$,
+    Bogus: state$
   }
     
   return sink;
@@ -75,8 +82,13 @@ run(main, {
   EffectHttp: function(textStream$) {    
     textStream$.subscribe((textStream) => {
       console.log(textStream.value);
-      textStream.focus();
-      textStream.value = '';
+      //\\textStream.focus();
+      //\\textStream.value = '';
     })
+  },
+  Bogus: function(state$) {
+    state$.subscribe((state) => {
+      console.log(state);
+    });
   }
 });

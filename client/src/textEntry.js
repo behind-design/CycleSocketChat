@@ -15,8 +15,8 @@ export function textEntryIntentWithEnterKeyPressed(DOMSource) {
   return {textStream$, enterKeyPressed$};
 }
   
-export function textEntryView(state$) {  
-  const vdom$ = state$.map(state =>
+export function textEntryView() {  
+  const vdom$ = Observable.of(
     div({className: 'row'}, [
       div({className: 'input-field col s10'}, [
         input({id: 'input-msg', className: 'validate', autofocus: true}),
