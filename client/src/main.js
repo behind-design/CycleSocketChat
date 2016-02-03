@@ -16,12 +16,12 @@ function view(DOMSource) {
   const vtree$ = Observable.of(
     div([
       appBarView$,
-      div({className: 'row'}, [
-        div({className: 'col s6'}, [
+      div('.row', [
+        div('.col .s6', [
           h4('Chat Messages'),
           textEntryView$,
         ]),
-        div({className: 'col s6'}, [
+        div('.col .s6', [
           presencePaneView$,
         ]),
       ])
