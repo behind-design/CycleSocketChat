@@ -39,7 +39,7 @@ function view(state$, DOMSource) {
   const presencePaneView$ = presencePane(DOMSource);
   const textEntryView$ = textEntryView(state$);
   
-  const vtree$ = state$.map(state =>
+  const vtree$ = Observable.of(
     div([
       appBarView$,
       div({className: 'row'}, [
