@@ -1,21 +1,7 @@
 import {Observable} from 'rx';
 import {h4, div, ul, li, span, p, input, label, a, i} from '@cycle/dom';
-
-export function textEntryIntentWithSendButtonClicked(DOMSource) {
-  const textStream$ = DOMSource.select('#input-msg').events('keyup').map(e => e.target);
-  const buttonClick$ = DOMSource.select('#send-btn').events('click').map(e => e.target);
-
-  return {textStream$, buttonClick$};
-}
-
-export function textEntryIntentWithEnterKeyPressed(DOMSource) {    
-  const textStream$ = DOMSource.select('#input-msg').events('keyup').filter(textStream => textStream.keyCode !== 13).map(e => e.target);
-  const enterKeyPressed$ = DOMSource.select('#input-msg').events('keyup').filter(textStream => textStream.keyCode === 13).map(e => e.target);
   
-  return {textStream$, enterKeyPressed$};
-}
-  
-export function textEntryView() {  
+export function textEntryView(DOMSource) {  
   const vdom$ = Observable.of(
     div({className: 'row'}, [
       div({className: 'input-field col s10'}, [
